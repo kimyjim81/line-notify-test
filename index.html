@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps 查詢工具</title>
+</head>
+<body>
+    <h1>貼上經緯度查詢 Google Maps 位置</h1>
+    <form id="locationForm">
+        <label for="coordinates">請貼上經緯度 (格式：經度：121.221128 緯度：24.961517)：</label>
+        <br><br>
+        <textarea id="coordinates" rows="3" cols="40" placeholder="經度：121.221128 緯度：24.961517"></textarea>
+        <br><br>
+        <button type="submit">查詢位置</button>
+    </form>
+
+    <h2>Google Maps 分享網址：</h2>
+    <p id="mapUrl"></p>
+    <br>
+    <button id="emailButton" style="display:none;">發送網址到 Gmail</button>
+    <button id="lineButton" style="display:none;">手動發送到 LINE</button>
+
+    <script>
+        let generatedMapUrl = '';  // 保存生成的 Google Maps 網址
+
+        document.getElementById('locationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // 取得使用者貼上的經緯度
+            const coordinates = document.getElementById('coordinates').value;
+            
+            // 使用正則表達式解析經度與緯度
+            const longitudeMatch = coordinates.match(/經度\s*[:：]\s*([0-9.-]+)/);
+            const latitudeMatch = coordinates.match(/緯度\s*[:：]\s*([0-9.-]+)/);
+            
+            if (longitudeMatch && latitudeMatch) {
+                const longitude = longitudeMatch[1];
+                const latitude = latitudeMatch[1];
+                
+                // 生成 Google Maps 的分享網址
+                generatedMapUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                document.getElementById('mapUrl').innerHTML = `<a href="${generatedMapUrl}" target="_blank">${generatedMapUrl}</a>`;
+                
+                // 顯示發送到 Gmail 和 LINE 的按鈕
+                document.getElementById('emailButton').style.display = 'inline';
+                document.getElementById('lineButton').style.display = 'inline';
+                
+                // 設定 Gmail 撰寫郵件的網址
+                const emailButton = document.getElementById('emailButton');
+                emailButton.onclick = function() {
+                    const email = 'tpc36843@gmail.com'; // 這裡換成你的 Gmail
+                    const subject = 'Google Maps 位置分享';
+                    const body = `這是查詢的 Google Maps 位置：${generatedMapUrl}`;
+                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(gmailUrl, '_blank'); // 在新標籤頁打開 Gmail 撰寫頁面
+                };
+
+            } else {
+                document.getElementById('mapUrl').textContent = "請輸入有效的經緯度格式！";
+            }
+        });
+
+        // 手動點擊按鈕來傳送 LINE 訊息
+        document.getElementById('lineButton').addEventListener('click', function() {
+            if (generatedMapUrl) {
+                sendToLineNotify(generatedMapUrl);
+            } else {
+                alert('請先生成 Google Maps 網址！');
+            }
+        });
+
+        // 傳送 Google Maps URL 到 LINE Notify
+        function sendToLineNotify(mapUrl) {
+            const lineNotifyUrl = 'https://notify-api.line.me/api/notify';
+            const token = '24ZSzGyGXx6IiFqVf17hCQJC9102A5zAAn22xy60d2k'; // 替換為正確的群組權杖
+            const message = `這是 Google Maps 位置分享：${mapUrl}`;
+
+            fetch(lineNotifyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: `message=${encodeURIComponent(message)}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => { throw new Error(data.message); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success:', data);
+                alert('訊息已成功發送到 LINE！');
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert(`發送訊息到 LINE 時出現錯誤：${error.message}`);
+            });
+        }
+    </script>
+</body>
+</html>
